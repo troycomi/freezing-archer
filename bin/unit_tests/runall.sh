@@ -12,6 +12,7 @@
 baseline_git_hash=52ecafe
 baseline_git_hash=32e4bc4
 baseline_git_hash=189efad # local pval on S* regions
+baseline_git_hash=72436e7 # local pval on S* regions
 current_git_hash=$(git log --pretty=format:'%h' -n 1)
 
 ofile_current=output_files/runall.s_star.test_$current_git_hash.txt
@@ -39,7 +40,7 @@ python  ../windowed_calculations.py \
 #    | sort -k1,1 -k2,3n -k6,6 \
 
 
-cat $ofile_current | transpose  > $ofile_current_cols
+./transpose $ofile_current $'\t' > $ofile_current_cols
 
 # awk -OFS '\t' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9, $11, $12, $15, $13, $14, $10}' test_files/science_supplement_example.vcf > test_files/science_supplement_example.vcf.shuf_cols
 
@@ -59,12 +60,14 @@ python  ../windowed_calculations.py \
 #    | sort -k1,1 -k2,3n -k6,6 \
 
 
-cat $ofile_current_shuf | transpose  > $ofile_current_shuf_cols
+./transpose $ofile_current_shuf $'\t' > $ofile_current_shuf_cols
 
 
 echo
 echo "sdiff of baseline shuffled, and newest version unshuffled"
-sdiff -w200 $ofile_baseline_shuf $ofile_current
+sdiff -w200 $ofile_baseline_cols $ofile_current_cols
+cmp $ofile_baseline $ofile_current
 echo
 echo "sdiff of baseline unshuffled, and newest version shuffled (transposed)"
 sdiff -w200 $ofile_baseline_cols $ofile_current_shuf_cols
+cmp $ofile_baseline $ofile_current_shuf
