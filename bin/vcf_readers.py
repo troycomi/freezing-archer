@@ -1,8 +1,9 @@
 import sys
 import gzip
+import pandas as pd
 
 
-class vcf_class:
+class archaic_vcf:
     def __init__(self, filename, ancestral_bsg=None,
                  vcf_has_illumina_chrnums=False, regions=None):
         if filename.endswith('.gz'):
@@ -21,7 +22,7 @@ class vcf_class:
                 continue
             try:
                 (chrom, pos, _, ref, alt,
-                 qual, _, _, _, gt_info) = line.strip().split()
+                 _, _, _, _, gt_info) = line.strip().split()
             except ValueError:
                 raise ValueError(
                     "Too many columns in ARCHAIC VCF: %s?\n" % filename +
@@ -78,7 +79,7 @@ class vcf_class:
         return {}
 
     def init_chrom(self, chrom):
-        self.vcf[chrom] = vcf_class.base_chrom_dict()
+        self.vcf[chrom] = archaic_vcf.base_chrom_dict()
 
     def add_site(self, chrom, pos, gt, ref, alt, ancestral):
         if ancestral == alt:
@@ -113,3 +114,27 @@ class vcf_class:
         return [(p, self.get_derived_count(chrom, p))
                 for p in range(winstart, winend)
                 if self.has_derived(chrom, p)]
+
+
+class ancestral_vcf(object):
+    def __init__(self, filename):
+        '''
+        Read in vcf, storing it's chromosome, position and reference allele
+        '''
+        self.vcf = pd.read_csv(
+            filename, sep='\t', comment='#', usecols=[0, 1, 3],
+            names=['chromosome', 'position', 'ref'],
+            dtype={'chromosome': str, 'position': int, 'ref': str},
+            index_col=[0, 1]
+        )
+        if self.vcf.index.duplicated().any():
+            raise ValueError(
+                "error - duplicate position in VCF file?\n" +
+                str(self.vcf.loc[self.vcf.index.duplicated(keep=False)])
+            )
+
+    def get_base_one_based(self, chrom, pos):
+        try:
+            return self.vcf.loc[chrom].loc[pos]['ref']
+        except KeyError:
+            return 'N'

@@ -106,27 +106,3 @@ def munge_regions(opts):
     if opts.regions is None and not opts.vcf_is_ms_file:
         sys.stderr.write('NO MASKING GIVEN - ASSUMING WHOLE GENOME IS PERFECT '
                          '(hint: this is probably not a good assumption)\n\n')
-
-
-class ancestral_vcf(object):
-    def __init__(self, filename):
-        '''
-        Read in vcf, storing it's chromosome, position and reference allele
-        '''
-        self.vcf = pd.read_csv(
-            filename, sep='\t', comment='#', usecols=[0, 1, 3],
-            names=['chromosome', 'position', 'ref'],
-            dtype={'chromosome': str, 'position': int, 'ref': str},
-            index_col=[0, 1]
-        )
-        if self.vcf.index.duplicated().any():
-            raise ValueError(
-                "error - duplicate position in VCF file?\n" +
-                str(self.vcf.loc[self.vcf.index.duplicated(keep=False)])
-            )
-
-    def get_base_one_based(self, chrom, pos):
-        try:
-            return self.vcf.loc[chrom].loc[pos]['ref']
-        except KeyError:
-            return 'N'
