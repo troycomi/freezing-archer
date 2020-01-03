@@ -1,9 +1,11 @@
 from __future__ import division
-import sys, os, argparse, numpy
+import sys
+import os
+import argparse
+import numpy
 from time import clock, time
 from collections import defaultdict, deque
 sys.path.append('/net/akey/vol1/home/bvernot/tishkoff/filter_files/')
-from myBedTools3 import myBedTools
 from operator import itemgetter
 from math import log, ceil
 from itertools import islice

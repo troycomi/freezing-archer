@@ -62,12 +62,13 @@ python  ../windowed_calculations.py \
 
 ./transpose $ofile_current_shuf $'\t' > $ofile_current_shuf_cols
 
-
-echo
-echo "sdiff of baseline shuffled, and newest version unshuffled"
-sdiff -w200 $ofile_baseline_cols $ofile_current_cols
 cmp $ofile_baseline $ofile_current
-echo
-echo "sdiff of baseline unshuffled, and newest version shuffled (transposed)"
-sdiff -w200 $ofile_baseline_cols $ofile_current_shuf_cols
+if [ $? -ne 0 ]; then
+    echo "sdiff of baseline shuffled, and newest version unshuffled"
+    sdiff -w200 $ofile_baseline_cols $ofile_current_cols
+fi
 cmp $ofile_baseline $ofile_current_shuf
+if [ $? -ne 0 ]; then
+    echo "sdiff of baseline unshuffled, and newest version shuffled (transposed)"
+    sdiff -w200 $ofile_baseline_cols $ofile_current_shuf_cols
+fi

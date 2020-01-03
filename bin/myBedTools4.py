@@ -39,7 +39,7 @@ def parse_arguments():
 
     bed_parser = argparse.ArgumentParser(add_help = False)
     bed_parser.add_argument('-int-chrs', '--int-chrs', default=False)
-    
+
     compression_parser = argparse.ArgumentParser(add_help = False)
     compression_parser.add_argument('-clev', '--compression-level', type=int, default=4)
     compression_parser.add_argument('-ctype', '--compression-type', default='gzip')
@@ -56,7 +56,7 @@ def parse_arguments():
     cat_file_parser = subparsers.add_parser('cat', parents = [binary_infile_parser])
     peek_file_parser = subparsers.add_parser('peek', parents = [binary_infile_parser])
     test_file_parser = subparsers.add_parser('test', parents = [binary_infile_parser])
-    
+
     opts = parser.parse_args()
     return opts
 
@@ -67,14 +67,14 @@ def sorted_chroms(f):
 
 def create_compressed_sequence_file_from_fasta(opts):
 
-    ## create hdf5 file
+    # create hdf5 file
     f = h5py.File(opts.output_file, 'w')
     f.attrs['version'] = myBedTools.version_str
     f.attrs['filetype'] = 'seq'
     f.attrs['ref_version'] = opts.reference_version
-    
+
     for fa in opts.fasta_files:
-    
+
         header = fa.readline().strip()
         if not header.startswith('>'):
             print 'INCORRECT FASTA HEADER', l
@@ -83,8 +83,8 @@ def create_compressed_sequence_file_from_fasta(opts):
         chrname = header[1:].strip().split()[0]
         print 'Extracted chromosome name "%s" from header:' % chrname
         print header
-        
-        ## get number of bases in chr - not a great way to do this, but.. you only have to do it once
+
+        # get number of bases in chr - not a great way to do this, but.. you only have to do it once
         num_bases = 0
         for l in fa:
             if l.startswith('>'):
@@ -94,10 +94,10 @@ def create_compressed_sequence_file_from_fasta(opts):
             num_bases += len(l)-1
             pass
         print "processing %d bases.." % num_bases
-        
-        ## make chr hdf5 dataset
+
+        # make chr hdf5 dataset
         cdef = f.create_dataset(chrname, (num_bases,), dtype='S1', compression='gzip', compression_opts=opts.compression_level)
-        
+
         fa.seek(0)
         x=0
         fa.readline()
@@ -110,15 +110,15 @@ def create_compressed_sequence_file_from_fasta(opts):
                 current_progress = x
                 sys.stderr.write("progress.. %s %d\n" % (header, x))
                 pass
-            
+
             pass
-        
+
         print "finished processing fasta"
         print x, "bases out of", num_bases
         print
 
         pass
-    
+
     f.close()
 
     return
@@ -127,21 +127,21 @@ def create_compressed_sequence_file_from_fasta(opts):
 
 def create_compressed_bed_file_from_bed(opts):
 
-    ## create hdf5 file
+    # create hdf5 file
     f = h5py.File(opts.output_file, 'w')
     f.attrs['version'] = myBedTools.version_str
     f.attrs['filetype'] = 'bed'
     f.attrs['ref_version'] = opts.reference_version
 
-    ## make sure all chromosomes are defined..
+    # make sure all chromosomes are defined..
     for chrname, num_bases in sorted(refDefinitions.chr_lens.items()):
         print "Initializing chromosome %s, with %d bases" % (chrname, num_bases)
         cdef = f.create_dataset(chrname, (num_bases,), dtype='b', compression='gzip', compression_opts=opts.compression_level, fillvalue=0)
         # cdef[:] = 0
         pass
 
-    ## find out if the chromosomes are 1 or chr1
-    ## THIS DOESN'T WORK WITH STDIN
+    # find out if the chromosomes are 1 or chr1
+    # THIS DOESN'T WORK WITH STDIN
     int_chrs = False
     test_line = opts.bed_files[0].readline()
     test_chr = test_line.split()[0]
@@ -155,7 +155,7 @@ def create_compressed_bed_file_from_bed(opts):
         pass
     opts.bed_files[0].seek(0)
 
-    ## make sure there aren't going to be any issues..
+    # make sure there aren't going to be any issues..
     for bedfile in opts.bed_files:
         l = bedfile.readline()
         l = l.rstrip().split()
@@ -185,9 +185,9 @@ def create_compressed_bed_file_from_bed(opts):
                 pass
             pass
         pass
-    
+
     f.close()
-    
+
     return
 
 
@@ -201,7 +201,7 @@ def to_bed(chrom, limit=None, pad=''):
     count = 0
 
     chrname = pad + chrom.name[1:]
-    
+
     if limit != None:
         chrom_bases = chrom[:100000]
     else:
@@ -219,10 +219,10 @@ def to_bed(chrom, limit=None, pad=''):
             if k == 0:
                 pos += bedlen
                 continue
-            
+
             print "%s\t%d\t%d" % (chrname, pos, pos+bedlen)
             pos += bedlen
-            
+
             count += 1
             if limit != None and count >= limit: break
             pass
@@ -230,7 +230,7 @@ def to_bed(chrom, limit=None, pad=''):
 
     else:
 
-        ## this version is 15x slower.. but might be worth it in cython?
+        # this version is 15x slower.. but might be worth it in cython?
         inbed = False
         bedstart = 0
         bedend = 0
@@ -251,7 +251,7 @@ def to_bed(chrom, limit=None, pad=''):
 
             pass
         pass
-    
+
     if limit != None and count < limit:
         # print pad + "no elements found within 100000 bases"
         pass
@@ -260,25 +260,25 @@ def to_bed(chrom, limit=None, pad=''):
 
 
 def peek_compressed_file(opts):
-    
-    ## open hdf5 dataset
+
+    # open hdf5 dataset
     f = h5py.File(opts.infile, 'r')
-    
+
     if not 'version' in f.attrs:
         print "Are you sure this is the correct file?  It doesn't contain a version number.."
         sys.exit(-1)
         pass
-    
+
     print "Version:", f.attrs['version']
     print "File contains %d chromosomes:" % len(f)
 
     if f.attrs['filetype'] == 'seq':
-        
+
         for chrom in sorted_chroms(f):
             report_items = [chrom.name, len(chrom)] + [''.join(chrom[x:x+10]) for x in (0, len(chrom)//2, len(chrom)-100)] + [''.join(chrom[x] for x in random.sample(xrange(len(chrom)), 20))]
             print "  name:%s \t len:%d \t beginning/middle/end:%s..%s..%s \t random:%s" % tuple(report_items)
             pass
-        
+
     elif f.attrs['filetype'] == 'bed':
 
         for chrom in sorted_chroms(f):
@@ -298,22 +298,22 @@ def peek_compressed_file(opts):
 
 
 def cat_compressed_file(opts):
-    
-    ## open hdf5 dataset
+
+    # open hdf5 dataset
     f = h5py.File(opts.infile, 'r')
-    
+
     if not 'version' in f.attrs:
         print "Are you sure this is the correct file?  It doesn't contain a version number.."
         sys.exit(-1)
         pass
-    
+
     if opts.debug: print "Version:", f.attrs['version']
     if opts.debug: print "File contains %d chromosomes:" % len(f)
 
     if f.attrs['filetype'] == 'seq':
         print "The cat function is not currently defined for sequence files.  Try peek."
         sys.exit(-1)
-        
+
     elif f.attrs['filetype'] == 'bed':
 
         for chrom in sorted_chroms(f):
@@ -360,14 +360,14 @@ class refDefinitions:
 
 
 class myBedTools:
-    
+
     version_str = '0.1'
-    
+
     def __init__(self, filename = None, invert = False, ref_version = 'hg19', initialize = True):
-        
+
         self.filename = filename
         self.ref_version = ref_version
-        
+
         if self.filename != None:
             self.hdf5_file = h5py.File(self.filename, 'r')
         else:
@@ -375,7 +375,7 @@ class myBedTools:
             self.filename = self.tempfilehandle.name
             self.hdf5_file = h5py.File(self.filename, 'w')
             pass
-        
+
         return
 
 
@@ -399,18 +399,18 @@ class myBedTools:
                 # data = bedfile.hdf5_file[chrom_name])
             # self.hdf5_file[chrom_name] = bedfile.hdf5_file[chrom_name][:]
             pass
-        
+
         return True
 
 
     def __ior__(self, bedfile):
 
         self.check_compatible(bedfile)
-        
+
         for chrom_name in bedfile.sorted_chrom_names():
             self.hdf5_file[chrom_name][:] = self.hdf5_file[chrom_name][:] | bedfile.hdf5_file[chrom_name][:]
             pass
-        
+
         return self
 
 
@@ -419,20 +419,20 @@ class myBedTools:
 
     def sorted_chrom_names(self):
         return sorted(c.name[1:] for c in self.hdf5_file.values())
-    
+
 
     pass
 
 
 def test_compressed_file(opts):
-    
+
     f0 = myBedTools()
     f1 = myBedTools(opts.infile)
     f2 = myBedTools(opts.infile)
 
     print f1.sorted_chrom_names()
     print f2.sorted_chrom_names()
-    
+
     # print f0.hdf5_file['chr1'][:200]
 
     f0 |= f2
@@ -440,7 +440,7 @@ def test_compressed_file(opts):
     print f0.hdf5_file['chr1'][:200]
 
     return
-    
+
 if __name__ == "__main__":
 
     opts = parse_arguments()
@@ -457,6 +457,6 @@ if __name__ == "__main__":
         test_compressed_file(opts)
         pass
 
-    
+
 
     pass
