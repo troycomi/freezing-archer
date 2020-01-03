@@ -366,11 +366,11 @@ def calc_local_match_pval(chrom, winstart, winend, snps, opts,
 
         if opts.debug:
             print("test_ratio1", winstart, winend, ind,
-                  opts.get_pop_from_sample_index(ind), n_match1,
+                  opts.get_pop_from_sample_index[ind], n_match1,
                   len(neand_pos), len(ind_pos1), my_n_sites1, test_ratio1)
         if opts.debug:
             print("test_ratio2", winstart, winend, ind,
-                  opts.get_pop_from_sample_index(ind), n_match2,
+                  opts.get_pop_from_sample_index[ind], n_match2,
                   len(neand_pos), len(ind_pos2), my_n_sites2, test_ratio2)
 
     # THIS SHOULD BE CONVERTED TO WORK WITH OPTS.TARGET_INDICES
@@ -389,11 +389,11 @@ def calc_local_match_pval(chrom, winstart, winend, snps, opts,
         pvals[ind*2+1] = (ps_2 if ps_2 > 0 else 1) / opts.num_reference / 2
         if opts.debug:
             print("pval1", winstart, winend, ind,
-                  opts.get_pop_from_sample_index(ind),
+                  opts.get_pop_from_sample_index[ind],
                   match_pct[ind*2], pvals[ind*2])
         if opts.debug:
             print("pval2", winstart, winend, ind,
-                  opts.get_pop_from_sample_index(ind),
+                  opts.get_pop_from_sample_index[ind],
                   match_pct[ind*2+1], pvals[ind*2+1])
 
     return (pvals, match_pct, ref_nones)
@@ -581,8 +581,8 @@ def run_window_analysis(chrom, winstart, winend, snps, opts):
 
         print('\t'.join(str(s) for s in [
             chrom, winstart, winend, len(snps), len(ind1_snps),
-            len(ind1_or_ref_snps), opts.get_id_from_sample_index(ind),
-            opts.get_pop_from_sample_index(ind), s_star, len(s_star_snps),
+            len(ind1_or_ref_snps), opts.get_id_from_sample_index[ind],
+            opts.get_pop_from_sample_index[ind], s_star, len(s_star_snps),
             ','.join(str(ind1_pos[i]) for i in s_star_snps)
             if len(s_star_snps) > 0 else '.',
             match_pvals2[ind*2], match_pvals2[ind*2+1],

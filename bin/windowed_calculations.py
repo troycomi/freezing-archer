@@ -9,7 +9,8 @@ import gzip
 from custom_argparse import (BinarySeqFileAction, BinaryBedFileAction,
                              IntersectBinaryBedFilesAction,
                              MergeBinaryBedFilesAction,
-                             ancestral_vcf, munge_regions)
+                             munge_regions)
+from vcf_readers import ancestral_vcf
 import pandas
 import tables
 import locale

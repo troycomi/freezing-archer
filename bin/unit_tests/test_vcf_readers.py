@@ -4,7 +4,7 @@ from vcf_readers import (ancestral_vcf, archaic_vcf)
 
 
 @pytest.fixture
-def default_vcf(mocker):
+def default_archaic_vcf(mocker):
     vcf_input = StringIO(
         u'##fileformat=VCFv4.2\n'
         '##source=msprime 0.6.1\n'
@@ -25,7 +25,7 @@ def default_vcf(mocker):
     return archaic_vcf('test.vcf')
 
 
-def test_init(mocker, capsys):
+def test_archaic_init(mocker, capsys):
     vcf_input = StringIO(
         u'##fileformat=VCFv4.2\n'
         '##source=msprime 0.6.1\n'
@@ -62,7 +62,7 @@ def test_init(mocker, capsys):
     }
 
 
-def test_init_execptions(mocker, capsys):
+def test_archaic_init_execptions(mocker, capsys):
     # empty
     vcf_input = StringIO(
     )
@@ -132,8 +132,7 @@ def test_init_execptions(mocker, capsys):
         }}
 
 
-# these are all tests for ancetral_vcf, as the organization is off
-def test_normal(mocker):
+def test_ancestral_normal(mocker):
     vcf_input = StringIO(
         u'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
         '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tmsp_0\n'
@@ -155,7 +154,7 @@ def test_normal(mocker):
     assert vcf.get_base_one_based(1, 8) == 'N'
 
 
-def test_chr(mocker):
+def test_ancestral_chr(mocker):
     vcf_input = StringIO(
         u'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
         '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tmsp_0\n'
@@ -177,7 +176,7 @@ def test_chr(mocker):
     assert vcf.get_base_one_based('chr1', 8) == 'N'
 
 
-def test_duplicate(mocker):
+def test_ancestral_duplicate(mocker):
     vcf_input = StringIO(
         u'##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
         '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tmsp_0\n'

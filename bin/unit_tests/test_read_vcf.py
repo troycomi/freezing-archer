@@ -26,21 +26,21 @@ def test_read_pop_file():
 
     read_vcf.read_1kg_ind_pop_file(infile, opts)
 
-    assert opts.exclude_individuals == ['HG00099']
+    assert (opts.exclude_individuals == ['HG00099']).all()
     assert opts.exclude_individuals_indexed_to_orig_file == [12]
     # target + reference list
-    assert opts.get_id_from_sample_index(0) == 'HG00097'
-    assert opts.get_id_from_sample_index(1) == 'HG00096'
-    assert opts.get_pop_from_sample_index(0) == 'GBR2'
-    assert opts.get_pop_from_sample_index(1) == 'GBR1'
+    assert opts.get_id_from_sample_index[0] == 'HG00097'
+    assert opts.get_id_from_sample_index[1] == 'HG00096'
+    assert opts.get_pop_from_sample_index[0] == 'GBR2'
+    assert opts.get_pop_from_sample_index[1] == 'GBR1'
     assert opts.num_reference == 1
     assert opts.num_samples == 2
     assert opts.num_target == 1
-    assert opts.reference_indices == [1]
-    assert opts.reference_individuals == ['HG00096']
+    assert (opts.reference_indices == [1]).all()
+    assert (opts.reference_individuals == ['HG00096']).all()
     assert opts.reference_individuals_indexed_to_orig_file == [10]
-    assert opts.target_indices == [0]
-    assert opts.target_individuals == ['HG00097']
+    assert (opts.target_indices == [0]).all()
+    assert (opts.target_individuals == ['HG00097']).all()
     assert opts.target_individuals_indexed_to_orig_file == [11]
 
     for k in sorted(opts.keys()):

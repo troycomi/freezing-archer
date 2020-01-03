@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 def vcf_to_genotypes_windowed(vcf_file, winlen, winstep,
                               vcf_ind_pop_file, opts, start=0):
 
@@ -80,7 +83,7 @@ def read_vcf_header(vcf_file, opts):
                                           enumerate(line.strip().split()[9:])}
 
 
-def read_1kg_ind_pop_file(f, opts):
+def read_1kg_ind_pop_file(ind_pop_file, opts):
 
     """
     Sets up important options including:
@@ -97,77 +100,57 @@ def read_1kg_ind_pop_file(f, opts):
     # HG00097 GBR     EUR     female
     # HG00099 GBR     EUR     female
 
-    f.readline()  # header
+    pop_data = pd.read_csv(ind_pop_file,
+                           sep='\t',
+                           usecols=[0, 1, 2],
+                           names=['sample', 'pop', 'super_pop'],
+                           skiprows=1
+                           )
+    opts.exclude_individuals = pop_data.loc[
+        (pop_data['sample'].isin(opts.exclude_individuals)) |
+        (pop_data['pop'].isin(opts.exclude_populations)) |
+        (pop_data['super_pop'].isin(opts.exclude_populations))
+         ]['sample']
+    # these are used later
+    refs = pop_data.loc[
+        (pop_data['sample'].isin(opts.reference_individuals)) |
+        (pop_data['pop'].isin(opts.reference_populations)) |
+        (pop_data['super_pop'].isin(opts.reference_populations))
+         ]
+    targ = pop_data.loc[
+        (pop_data['sample'].isin(opts.target_individuals)) |
+        (pop_data['pop'].isin(opts.target_populations)) |
+        (pop_data['super_pop'].isin(opts.target_populations))
+         ]
 
-    ind_pop_mapping = [l.strip().split()[:3] for l in f.readlines()]
+    opts.reference_individuals = refs['sample']
+    opts.target_individuals = targ['sample']
 
-    process_ind_pop_mapping(opts, ind_pop_mapping)
-
-
-def process_ind_pop_mapping(opts, ind_pop_mapping):
-    sample_to_pop = {}
-    sample_to_superpop = {}
-
-    all_pops = set()
-    all_superpops = set()
-    opts.reference_individuals = set(opts.reference_individuals)
-    opts.target_individuals = set(opts.target_individuals)
-    opts.exclude_individuals = set(opts.exclude_individuals)
-
-    # go through each line in the ind_pop file,
-    # and add the individual's ID (i.e., NA12078) to
-    #  opts.target_individuals, etc, if the pop or superpop matches
-    pop_file_ind_id_order = []
-    for sample, pop, superpop in ind_pop_mapping:
-
-        sample_to_pop[sample] = pop
-        sample_to_superpop[sample] = superpop
-        all_pops.add(pop)
-        all_superpops.add(superpop)
-        pop_file_ind_id_order.append(sample)
-
-        if pop in opts.reference_populations \
-                or superpop in opts.reference_populations:
-            opts.reference_individuals.add(sample)
-
-        if pop in opts.target_populations \
-                or superpop in opts.target_populations:
-            opts.target_individuals.add(sample)
-
-        if pop in opts.exclude_populations \
-                or superpop in opts.exclude_populations:
-            opts.exclude_individuals.add(sample)
-
-    # now sort them by order in the ind_pop file
-    opts.target_individuals = [i for i in pop_file_ind_id_order
-                               if i in opts.target_individuals]
-    opts.exclude_individuals = [i for i in pop_file_ind_id_order
-                                if i in opts.exclude_individuals]
-    opts.reference_individuals = [i for i in pop_file_ind_id_order
-                                  if i in opts.reference_individuals]
-
-    # make sure we have a mapping back to the order in the original vcf file
-    opts.target_individuals_indexed_to_orig_file = [
-        opts.sample_index_in_original_file[ind]
-        for ind in opts.target_individuals]
     opts.exclude_individuals_indexed_to_orig_file = [
-        opts.sample_index_in_original_file[ind]
-        for ind in opts.exclude_individuals]
+        opts.sample_index_in_original_file[ind] for ind in
+        opts.exclude_individuals]
     opts.reference_individuals_indexed_to_orig_file = [
-        opts.sample_index_in_original_file[ind]
-        for ind in opts.reference_individuals]
+        opts.sample_index_in_original_file[ind] for ind in
+        opts.reference_individuals]
+    opts.target_individuals_indexed_to_orig_file = [
+        opts.sample_index_in_original_file[ind] for ind in
+        opts.target_individuals]
 
-    sample_ids = opts.target_individuals + opts.reference_individuals
-    opts.num_target = len(opts.target_individuals)
     opts.num_reference = len(opts.reference_individuals)
-    opts.num_samples = opts.num_target + opts.num_reference
+    opts.num_target = len(opts.target_individuals)
+    opts.num_samples = opts.num_reference + opts.num_target
 
-    opts.target_indices = range(opts.num_target)
-    opts.reference_indices = range(opts.num_target,
-                                   opts.num_target+opts.num_reference)
+    # append the target and reference indivs for indexing
+    sample_ids = targ.append(refs, ignore_index=True)
+    opts.target_indices = sample_ids.index[:opts.num_target]
+    opts.reference_indices = sample_ids.index[opts.num_target:]
 
-    opts.get_id_from_sample_index = lambda ind: sample_ids[ind]
-    opts.get_pop_from_sample_index = lambda ind: sample_to_pop[sample_ids[ind]]
+    opts.get_id_from_sample_index = sample_ids['sample'].tolist()
+    opts.get_pop_from_sample_index = sample_ids['pop'].tolist()
+    return
+
+    opts.get_id_from_sample_index = lambda ind: sample_ids.iloc[ind]['sample']
+    opts.get_pop_from_sample_index = lambda ind: sample_ids.iloc[ind]['pop']
 
 
 def process_vcf_line_to_genotypes(line, opts):
