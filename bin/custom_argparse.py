@@ -5,7 +5,7 @@ import locale
 import gc
 
 from myBedTools3 import myBedTools
-from read_archaic_vcf import vcf_class
+import pandas as pd
 
 # in original mybedtools, I allowed the user to specify the
 # ref version with namespace.ref_version
@@ -109,56 +109,24 @@ def munge_regions(opts):
 
 
 class ancestral_vcf(object):
-
     def __init__(self, filename):
+        '''
+        Read in vcf, storing it's chromosome, position and reference allele
+        '''
+        self.vcf = pd.read_csv(
+            filename, sep='\t', comment='#', usecols=[0, 1, 3],
+            names=['chromosome', 'position', 'ref'],
+            dtype={'chromosome': str, 'position': int, 'ref': str},
+            index_col=[0, 1]
+        )
+        if self.vcf.index.duplicated().any():
+            raise ValueError(
+                "error - duplicate position in VCF file?\n" +
+                str(self.vcf.loc[self.vcf.index.duplicated(keep=False)])
+            )
 
-        self.vcf = {}
-        vcffile = open(filename, 'r')
-
-        c = 0
-
-        for line in vcffile:
-
-            if line.strip().startswith('#'):
-                continue
-
-            try:
-                [chrom, pos, _, ref, alt,
-                 qual, _, _, _, gt_info] = line.strip().split()
-                pos = int(pos)
-            except ValueError:
-                print("Too many lines in ANCESTRAL VCF: %s?" % filename)
-                print("Expecting one individual (10 columns):")
-                print(line)
-                sys.exit(-1)
-
-            if chrom not in self.vcf:
-                self.vcf[chrom] = self.base_chrom_dict()
-
-            if pos in self.vcf[chrom]:
-                print("error - duplicate position in VCF file?")
-                print(chrom, pos, ref, alt)
-                print(line)
-                sys.exit(-1)
-
-            self.add_site(chrom, pos, ref)
-
-            c += 1
-
-    @staticmethod
-    def base_chrom_dict():
-        return {}
-
-    def init_chrom(self, chrom):
-        self.vcf[chrom] = vcf_class.base_chrom_dict()
-
-    def add_site(self, chrom, pos, ref):
-        self.vcf[chrom][pos] = ref
-
-    def has_site(self, chrom, pos):
-        return pos in self.vcf[chrom]
-
-    def get_base_one_based(self, chrom, pos, illumina_chrs=False):
-        if not self.has_site(chrom, pos):
+    def get_base_one_based(self, chrom, pos):
+        try:
+            return self.vcf.loc[chrom].loc[pos]['ref']
+        except KeyError:
             return 'N'
-        return self.vcf[chrom][pos]
