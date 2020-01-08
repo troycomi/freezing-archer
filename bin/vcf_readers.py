@@ -1,6 +1,7 @@
 import sys
 import gzip
 import pandas as pd
+import bisect
 
 
 class archaic_vcf:
@@ -12,6 +13,13 @@ class archaic_vcf:
             vcffile = open(filename, 'r')
 
         self.vcf = {}
+        self.ancestral_remap = {
+            '1': '0',
+            '.': '0',
+            '0': '1'
+        }
+        self.derived_cache = None
+
         if filename is not None:
             sys.stderr.write("Reading VCF file %s..\n" % filename)
         c = 0
@@ -43,18 +51,16 @@ class archaic_vcf:
                     and not regions.in_region_one_based(chrom, pos)):
                 continue
 
-            if chrom not in self.vcf:
-                self.init_chrom(chrom)
-
-            if pos in self.vcf[chrom]:
+            if chrom in self.vcf and pos in self.vcf[chrom]:
                 raise ValueError(
                     "error - duplicate position in VCF file?\n" +
-                    " ".join(chrom, pos, ref, alt) + '\n' + line)
+                    " ".join([str(s) for s in (chrom, pos, ref, alt)])
+                    + '\n' + line)
 
             if len(alt) > 1:
                 raise ValueError(
                     "Error reading archaic VCF file:\n" +
-                    vcffile +
+                    filename +
                     "\nlen(alt) > 1: require only "
                     "bi-allelic SNPs in archaic VCF\n" + line)
 
@@ -74,16 +80,14 @@ class archaic_vcf:
             sys.stderr.write(" WARNING: REMOVED LEADING 'chr' FROM "
                              "CHROMOSOME NAMES, TO MATCH ILLUMINA VCFS\n")
 
-    @staticmethod
-    def base_chrom_dict():
-        return {}
-
-    def init_chrom(self, chrom):
-        self.vcf[chrom] = archaic_vcf.base_chrom_dict()
-
     def add_site(self, chrom, pos, gt, ref, alt, ancestral):
+        if chrom not in self.vcf:
+            self.vcf[chrom] = {}
         if ancestral == alt:
-            gt = gt.replace('1', '.').replace('0', '1').replace('.', '0')
+            # 1 -> 0, . -> 0, 0 -> 1
+            gt = ''.join([self.ancestral_remap[s]
+                          if s in self.ancestral_remap
+                          else s for s in gt])
             self.vcf[chrom][pos] = ('0' in gt, gt, ancestral, ref)
         else:
             self.vcf[chrom][pos] = ('0' in gt, gt, ref, alt)
@@ -104,16 +108,39 @@ class archaic_vcf:
         return self.vcf[chrom][pos][1].count('1')
 
     def has_site(self, chrom, pos):
-        return pos in self.vcf[chrom]
+        return chrom in self.vcf and pos in self.vcf[chrom]
 
     def get_derived_sites(self, chrom, winstart, winend):
-        return [p for p in range(winstart, winend)
-                if self.has_derived(chrom, p)]
+        if self.derived_cache is None:
+            self.generate_derived_cache()
+        if chrom not in self.derived_cache:
+            return []
+        return self.derived_positions[chrom][
+            bisect.bisect_left(self.derived_positions[chrom], winstart):
+            bisect.bisect_left(self.derived_positions[chrom], winend)]
 
     def get_derived_sites_with_der_count(self, chrom, winstart, winend):
-        return [(p, self.get_derived_count(chrom, p))
-                for p in range(winstart, winend)
-                if self.has_derived(chrom, p)]
+        if self.derived_cache is None:
+            self.generate_derived_cache()
+        if chrom not in self.derived_cache:
+            return []
+        return self.derived_cache[chrom][
+            bisect.bisect_left(self.derived_positions[chrom], winstart):
+            bisect.bisect_left(self.derived_positions[chrom], winend)]
+
+    def generate_derived_cache(self):
+        self.derived_cache = {}
+        self.derived_positions = {}
+        for chrom in self.vcf:
+            self.derived_cache[chrom] = sorted(
+                [(position, entry[1].count('1'))
+                 for position, entry in self.vcf[chrom].items()
+                 if '1' in entry[1]
+                 ],
+                key=lambda x: x[0]
+            )
+            self.derived_positions[chrom] = [
+                entry[0] for entry in self.derived_cache[chrom]]
 
 
 class ancestral_vcf(object):

@@ -4,13 +4,12 @@ import random
 import argparse
 from read_vcf import vcf_to_genotypes_windowed
 from read_ms import ms_to_genotypes_windowed
-import read_archaic_vcf
 import gzip
 from custom_argparse import (BinarySeqFileAction, BinaryBedFileAction,
                              IntersectBinaryBedFilesAction,
                              MergeBinaryBedFilesAction,
                              munge_regions)
-from vcf_readers import ancestral_vcf
+from vcf_readers import ancestral_vcf, archaic_vcf
 import pandas
 import tables
 import locale
@@ -105,7 +104,7 @@ parser.add_argument('-mssimlen', '--ms-simulated-region-length', default=None,
                     '(i.e., the second argument to -r).')
 parser.add_argument('-illumina-chrom', '--vcf-has-illumina-chrnums',
                     action='store_true')
-parser.add_argument('-archaic-vcf', '--archaic-vcf', required=False, nargs='+',
+parser.add_argument('-archaic-vcf', '--archaic-vcf', required=False,
                     help='VCF file listing archaic sites', default=None)
 parser.add_argument('-ancbsg', '--ancestral-bsg', action=BinarySeqFileAction,
                     required=False, help='BSG file listing ancestral sites '
@@ -174,7 +173,7 @@ analysis_group.add_argument('-d-stats', '--d-statistics',
 opts = parser.parse_args()
 setattr(opts, 'first_line', True)
 
-# set stdout to the -o file, if applicable
+# set stdout to the -o file
 sys.stdout = opts.output_file
 
 # set the random seed
@@ -199,13 +198,10 @@ module = supported_analyses[opts.analysis]
 if opts.ancestral_vcf is not None and opts.ancestral_bsg is None:
     opts.ancestral_bsg = ancestral_vcf(opts.ancestral_vcf)
 
-# THIS IS SUCH A HACK - ONLY USING ONE ARCHAIC VCF AT THIS POINT,
-# SO IF THERE'S MORE THAN ONE...... JUST REMOVE THEM
+# read in archaic vcf
 if opts.archaic_vcf is not None:
-    if len(opts.archaic_vcf) > 1:
-        print("REMOVING ALL BUT ONE ARCHAIC VCF!!!")
-    opts.archaic_vcf = read_archaic_vcf.vcf_class(
-        opts.archaic_vcf[0], opts.ancestral_bsg,
+    opts.archaic_vcf = archaic_vcf(
+        opts.archaic_vcf, opts.ancestral_bsg,
         opts.vcf_has_illumina_chrnums, opts.regions)
 
 munge_regions(opts)
