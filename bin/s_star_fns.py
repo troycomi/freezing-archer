@@ -1,8 +1,6 @@
 from __future__ import division
 import sys
 import numpy as np
-from collections import Counter
-import arc_match_pval_tables
 
 
 def calc_s_dists(genotypes, positions,
