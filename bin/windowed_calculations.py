@@ -321,7 +321,6 @@ for chrom, winstart, winend, snps in read_genotype_fn(opts.vcf_file,
                                                       opts):
 
     nwins += 1
-    local_debug = False
 
     if opts.regions is not None and \
             opts.regions.amount_in_region(chrom, winstart, winend) < \
@@ -329,17 +328,6 @@ for chrom, winstart, winend, snps in read_genotype_fn(opts.vcf_file,
         print("SKIPPING WINDOW", chrom, winstart, winend,
               opts.regions.amount_in_region(chrom, winstart, winend))
         continue
-
-    if opts.debug or local_debug:
-        print
-    if opts.debug or local_debug:
-        print(winstart, winend, len(snps))
-    if opts.debug or local_debug:
-        print(opts.target_indices)
-
-    if opts.debug or local_debug:
-        for snp in snps:
-            print('snp', snp['pos'], snp)
 
     module.run_window_analysis(chrom, winstart, winend, snps, opts)
 

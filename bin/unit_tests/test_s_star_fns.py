@@ -4,54 +4,57 @@ from numpy.testing import assert_almost_equal as aae
 import sys
 
 
-def test_calc_geno_dist():
-    def old_calc_geno_dist(gt1, gt2):
-        gd = [abs(gt1[i] - gt2[i]) for i in range(len(gt1))]
-        return sum(gd)
-    np.random.seed(0)
-    for _ in range(20):
-        gt1 = np.random.rand(10)
-        gt2 = np.random.rand(10)
-        gt1list = gt1.tolist()
-        gt2list = gt2.tolist()
+def old_calc_s(gt1, gt2, position1, position2,
+               match_bonus=5000, max_mismatch=5, mismatch_penalty=-10000):
 
-        # old version requires list, new takes either
-        aae(s_star_fns.calc_geno_dist(gt1, gt2),
-            old_calc_geno_dist(gt1list, gt2list))
-        aae(s_star_fns.calc_geno_dist(gt1list, gt2list),
-            old_calc_geno_dist(gt1list, gt2list))
+    # was abs, only use case with 1 < 2
+    # dist = abs(position1 - position2)
+    dist = position2 - position1
+    if dist < 10:
+        return np.NINF
 
-    assert s_star_fns.calc_geno_dist([], []) == 0
+    gd = old_calc_geno_dist([gt1], [gt2])
+    if gd == 0:
+        return match_bonus + dist
+
+    elif gd <= max_mismatch:
+        return mismatch_penalty
+
+    return np.NINF
 
 
-def test_calc_s():
+def old_calc_geno_dist(gt1, gt2):
+    gd = [abs(gt1[i] - gt2[i]) for i in range(len(gt1))]
+    return sum(gd)
+
+
+def test_calc_s_dists():
+    assert s_star_fns.calc_s_dists([], [], 5000, 5, -10000).size == 0
+
     bonus = 10
     mismatch = 3
     penalty = -5
 
-    assert s_star_fns.calc_s([], [],
-                             1, 2,
-                             bonus, mismatch, penalty) == -sys.maxint
+    gen = [0, 1, 2, 0, 1, 2]
+    pos = [1, 2, 15, 25, 45, 100]
 
-    assert s_star_fns.calc_s([], [],
-                             11, 2,
-                             bonus, mismatch, penalty) == -sys.maxint
+    result = np.full((6, 6), 0.0)
+    for i in range(6):
+        for j in range(6):
+            result[i, j] = old_calc_s(gen[i], gen[j], pos[i], pos[j],
+                                      bonus, mismatch, penalty)
+    aae(s_star_fns.calc_s_dists(gen, pos, bonus, mismatch, penalty),
+        result)
 
-    assert s_star_fns.calc_s([], [],  # gd == 0
-                             12, 2,
-                             bonus, mismatch, penalty) == bonus + 10  # dist
-
-    assert s_star_fns.calc_s([1], [0],  # gd == 1
-                             12, 2,
-                             bonus, mismatch, penalty) == penalty
-
-    assert s_star_fns.calc_s([1, 1, 1], [0, 0, 0],  # gd == 3
-                             12, 2,
-                             bonus, mismatch, penalty) == penalty
-
-    assert s_star_fns.calc_s([1, 1, 1, 0], [0, 0, 0, 1],  # gd == 4
-                             12, 2,
-                             bonus, mismatch, penalty) == -sys.maxint
+    # more spots are ni
+    mismatch = 1
+    result = np.full((6, 6), 0.0)
+    for i in range(6):
+        for j in range(6):
+            result[i, j] = old_calc_s(gen[i], gen[j], pos[i], pos[j],
+                                      bonus, mismatch, penalty)
+    aae(s_star_fns.calc_s_dists(gen, pos, bonus, mismatch, penalty),
+        result)
 
 
 def test_calc_s_star():
@@ -63,4 +66,4 @@ def test_calc_s_star():
         [1, 1, 1, 1],
         [5382, 28610, 32662, 35985],
         5000, 5, -10000))
-    # TODO finish this assert 0
+    # TODO assert 0

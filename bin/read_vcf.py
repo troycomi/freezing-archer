@@ -14,7 +14,7 @@ def vcf_to_genotypes_windowed(vcf_file, winlen, winstep,
     if opts.window_file is not None:
         chrom = None
         while chrom != opts.process_chromosome:
-            tokens = opts.window_file.readline().strip().split()
+            tokens = opts.window_file.readline().split()
             print('reading chromosomes, looking for %s: %s' %
                   (opts.process_chromosome, chrom))
             (chrom, winstart, winend) = [int(i) for i in tokens[:3]]
@@ -49,7 +49,7 @@ def vcf_to_genotypes_windowed(vcf_file, winlen, winstep,
             while snp_d['pos'] > winend:
                 yield (chrom, winstart, winend, snps)
                 if opts.window_file is not None:
-                    tokens = opts.window_file.readline().strip().split()
+                    tokens = opts.window_file.readline().split()
                     (winchrom, winstart, winend) = [int(i) for i in tokens[:3]]
                     if winchrom != opts.process_chromosome:
                         raise StopIteration
@@ -72,15 +72,15 @@ def read_vcf_header(vcf_file, opts):
 
     line = vcf_file.readline()
     # header starts with just one #, comments start with ##
-    while line.lstrip().startswith('##'):
+    while line.startswith('##'):
         line = vcf_file.readline()
 
     # #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT HG00096 HG00097
-    if not line.lstrip().startswith('#CHROM'):
+    if not line.startswith('#CHROM'):
         raise ValueError("bad VCF header?\n%s" % (line))
 
     opts.sample_index_in_original_file = {id: i for i, id in
-                                          enumerate(line.strip().split()[9:])}
+                                          enumerate(line.split()[9:])}
 
 
 def read_1kg_ind_pop_file(ind_pop_file, opts):
@@ -147,22 +147,18 @@ def read_1kg_ind_pop_file(ind_pop_file, opts):
 
     opts.get_id_from_sample_index = sample_ids['sample'].tolist()
     opts.get_pop_from_sample_index = sample_ids['pop'].tolist()
-    return
-
-    opts.get_id_from_sample_index = lambda ind: sample_ids.iloc[ind]['sample']
-    opts.get_pop_from_sample_index = lambda ind: sample_ids.iloc[ind]['pop']
 
 
 def process_vcf_line_to_genotypes(line, opts):
     # ignore comments
     # header starts with just one #, comments start with # - distinguish?
     # we've already read the header (to get ind_ids)
-    if line.lstrip().startswith('#'):
+    if line.startswith('#'):
         return None
 
     snp_d = {}
 
-    split_line = line.strip().split()
+    split_line = line.split()
     # #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT HG00096 HG00097
     snp_d['chrom'] = split_line[0]
     chrom = ('chr' if opts.vcf_has_illumina_chrnums else '') + snp_d['chrom']
@@ -260,7 +256,6 @@ def process_vcf_line_to_genotypes(line, opts):
     r_gt = set(r_gt)
 
     snp_d['target'] = '0|1' in t_gt or '1|0' in t_gt or '1|1' in t_gt
-    # I DO NOT UNDERSTAND WHAT I WAS GETTING AT HERE (the commented line)...
     snp_d['reference'] = '0|1' in r_gt or '1|0' in r_gt or '1|1' in r_gt
 
     # finally, remove variants that aren't in the target or reference
